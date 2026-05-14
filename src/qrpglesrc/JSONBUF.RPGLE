@@ -6,7 +6,7 @@
       *
       * Author: Mauro
       * Date: 2026-04-28
-      * Version: 1.0
+      * Version: 1.1 (Refactored to fixed-form)
       *
       * Stories: E1-S2 - Buffer Management System
       *          E1-S7 - Position Tracking
@@ -32,48 +32,48 @@
      D position        S               *
      D positionDs      DS                  LIKEDS(Position) BASED(position)
       *
-      /FREE
-       IF fileHandle = *NULL;
-         SetFileError(ERR_FILE_ACCESS: '': 'Null file handle');
-         RETURN *NULL;
-       ENDIF;
-       
-       // Allocate buffer handle
-       buffer = %ALLOC(%SIZE(BufferHandle));
-       IF buffer = *NULL;
-         SetMemoryError(ERR_MEM_ALLOC: 'InitBuffer');
-         RETURN *NULL;
-       ENDIF;
-       
-       // Allocate position structure
-       position = %ALLOC(%SIZE(Position));
-       IF position = *NULL;
-         DEALLOC buffer;
-         SetMemoryError(ERR_MEM_ALLOC: 'InitBuffer - position');
-         RETURN *NULL;
-       ENDIF;
-       
-       // Initialize buffer
-       CLEAR bufferDs;
-       bufferDs.fileHandle = fileHandle;
-       bufferDs.bufferSize = BUF_SIZE_ACTIV;
-       bufferDs.bufferPos = 0;
-       bufferDs.bytesInBuf = 0;
-       bufferDs.bytesInAhead = 0;
-       bufferDs.isEOF = *OFF;
-       bufferDs.position = position;
-       
-       // Initialize position
-       CLEAR positionDs;
-       positionDs.line = 1;
-       positionDs.column = 1;
-       positionDs.offset = 0;
-       
-       // Fill initial buffer
-       RefillBuffer(buffer);
-       
-       RETURN buffer;
-      /END-FREE
+     C                   IF        fileHandle = *NULL
+     C                   CALLP     SetFileError(ERR_FILE_ACCESS: '':
+     C                               'Null file handle')
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+      * Allocate buffer handle
+     C                   EVAL      buffer = %ALLOC(%SIZE(BufferHandle))
+     C                   IF        buffer = *NULL
+     C                   CALLP     SetMemoryError(ERR_MEM_ALLOC: 'InitBuffer')
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+      * Allocate position structure
+     C                   EVAL      position = %ALLOC(%SIZE(Position))
+     C                   IF        position = *NULL
+     C                   CALLP     DEALLOC(buffer)
+     C                   CALLP     SetMemoryError(ERR_MEM_ALLOC:
+     C                               'InitBuffer - position')
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+      * Initialize buffer
+     C                   CLEAR                   bufferDs
+     C                   EVAL      bufferDs.fileHandle = fileHandle
+     C                   EVAL      bufferDs.bufferSize = BUF_SIZE_ACTIV
+     C                   EVAL      bufferDs.bufferPos = 0
+     C                   EVAL      bufferDs.bytesInBuf = 0
+     C                   EVAL      bufferDs.bytesInAhead = 0
+     C                   EVAL      bufferDs.isEOF = *OFF
+     C                   EVAL      bufferDs.position = position
+      *
+      * Initialize position
+     C                   CLEAR                   positionDs
+     C                   EVAL      positionDs.line = 1
+     C                   EVAL      positionDs.column = 1
+     C                   EVAL      positionDs.offset = 0
+      *
+      * Fill initial buffer
+     C                   CALLP     RefillBuffer(buffer)
+      *
+     C                   RETURN    buffer
      P InitBuffer      E
 
       *=====================================================================
@@ -86,21 +86,19 @@
       *
      D bufferDs        DS                  LIKEDS(BufferHandle) BASED(buffer)
       *
-      /FREE
-       IF buffer = *NULL;
-         RETURN *OFF;
-       ENDIF;
-       
-       // Free position structure
-       IF bufferDs.position <> *NULL;
-         DEALLOC bufferDs.position;
-       ENDIF;
-       
-       // Free buffer
-       DEALLOC buffer;
-       
-       RETURN *ON;
-      /END-FREE
+     C                   IF        buffer = *NULL
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+      * Free position structure
+     C                   IF        bufferDs.position <> *NULL
+     C                   CALLP     DEALLOC(bufferDs.position)
+     C                   ENDIF
+      *
+      * Free buffer
+     C                   CALLP     DEALLOC(buffer)
+      *
+     C                   RETURN    *ON
      P CleanupBuffer   E
 
       *=====================================================================
@@ -115,54 +113,55 @@
      D bytesRead       S             10I 0
      D tempBuf         S           4096A
       *
-      /FREE
-       IF buffer = *NULL;
-         RETURN *OFF;
-       ENDIF;
-       
-       IF bufferDs.isEOF;
-         RETURN *OFF;
-       ENDIF;
-       
-       // Move read-ahead to active buffer if available
-       IF bufferDs.bytesInAhead > 0;
-         bufferDs.buffer = %SUBST(bufferDs.readAhead: 1:
-                                  bufferDs.bytesInAhead);
-         bufferDs.bytesInBuf = bufferDs.bytesInAhead;
-         bufferDs.bufferPos = 0;
-         bufferDs.bytesInAhead = 0;
-       ELSE;
-         // Read into active buffer
-         bytesRead = ReadChunk(bufferDs.fileHandle: tempBuf:
-                               BUF_SIZE_ACTIV);
-         
-         IF bytesRead < 0;
-           RETURN *OFF;
-         ENDIF;
-         
-         IF bytesRead = 0;
-           bufferDs.isEOF = *ON;
-           RETURN *OFF;
-         ENDIF;
-         
-         bufferDs.buffer = %SUBST(tempBuf: 1: bytesRead);
-         bufferDs.bytesInBuf = bytesRead;
-         bufferDs.bufferPos = 0;
-       ENDIF;
-       
-       // Read ahead if not at EOF
-       IF NOT IsEOF(bufferDs.fileHandle);
-         bytesRead = ReadChunk(bufferDs.fileHandle: tempBuf:
-                               BUF_SIZE_AHEAD);
-         
-         IF bytesRead > 0;
-           bufferDs.readAhead = %SUBST(tempBuf: 1: bytesRead);
-           bufferDs.bytesInAhead = bytesRead;
-         ENDIF;
-       ENDIF;
-       
-       RETURN *ON;
-      /END-FREE
+     C                   IF        buffer = *NULL
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   IF        bufferDs.isEOF
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+      * Move read-ahead to active buffer if available
+     C                   IF        bufferDs.bytesInAhead > 0
+     C                   EVAL      bufferDs.buffer = %SUBST(bufferDs.readAhead:
+     C                               1: bufferDs.bytesInAhead)
+     C                   EVAL      bufferDs.bytesInBuf = bufferDs.bytesInAhead
+     C                   EVAL      bufferDs.bufferPos = 0
+     C                   EVAL      bufferDs.bytesInAhead = 0
+     C                   ELSE
+      *
+      * Read into active buffer
+     C                   EVAL      bytesRead = ReadChunk(bufferDs.fileHandle:
+     C                               tempBuf: BUF_SIZE_ACTIV)
+      *
+     C                   IF        bytesRead < 0
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   IF        bytesRead = 0
+     C                   EVAL      bufferDs.isEOF = *ON
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   EVAL      bufferDs.buffer = %SUBST(tempBuf: 1:
+     C                               bytesRead)
+     C                   EVAL      bufferDs.bytesInBuf = bytesRead
+     C                   EVAL      bufferDs.bufferPos = 0
+     C                   ENDIF
+      *
+      * Read ahead if not at EOF
+     C                   IF        NOT IsEOF(bufferDs.fileHandle)
+     C                   EVAL      bytesRead = ReadChunk(bufferDs.fileHandle:
+     C                               tempBuf: BUF_SIZE_AHEAD)
+      *
+     C                   IF        bytesRead > 0
+     C                   EVAL      bufferDs.readAhead = %SUBST(tempBuf: 1:
+     C                               bytesRead)
+     C                   EVAL      bufferDs.bytesInAhead = bytesRead
+     C                   ENDIF
+     C                   ENDIF
+      *
+     C                   RETURN    *ON
      P RefillBuffer    E
 
       *=====================================================================
@@ -175,21 +174,20 @@
       *
      D bufferDs        DS                  LIKEDS(BufferHandle) BASED(buffer)
       *
-      /FREE
-       IF buffer = *NULL;
-         RETURN x'00';
-       ENDIF;
-       
-       // Check if buffer needs refill
-       IF bufferDs.bufferPos >= bufferDs.bytesInBuf;
-         IF NOT RefillBuffer(buffer);
-           RETURN x'00';
-         ENDIF;
-       ENDIF;
-       
-       // Return character at current position
-       RETURN %SUBST(bufferDs.buffer: bufferDs.bufferPos + 1: 1);
-      /END-FREE
+     C                   IF        buffer = *NULL
+     C                   RETURN    x'00'
+     C                   ENDIF
+      *
+      * Check if buffer needs refill
+     C                   IF        bufferDs.bufferPos >= bufferDs.bytesInBuf
+     C                   IF        NOT RefillBuffer(buffer)
+     C                   RETURN    x'00'
+     C                   ENDIF
+     C                   ENDIF
+      *
+      * Return character at current position
+     C                   RETURN    %SUBST(bufferDs.buffer:
+     C                               bufferDs.bufferPos + 1: 1)
      P PeekChar        E
 
       *=====================================================================
@@ -205,51 +203,52 @@
      D                                     BASED(bufferDs.position)
      D char            S              1A
       *
-      /FREE
-       IF buffer = *NULL;
-         RETURN x'00';
-       ENDIF;
-       
-       // Check if buffer needs refill
-       IF bufferDs.bufferPos >= bufferDs.bytesInBuf;
-         IF NOT RefillBuffer(buffer);
-           RETURN x'00';
-         ENDIF;
-       ENDIF;
-       
-       // Get character
-       char = %SUBST(bufferDs.buffer: bufferDs.bufferPos + 1: 1);
-       
-       // Advance buffer position
-       bufferDs.bufferPos = bufferDs.bufferPos + 1;
-       
-       // Update position tracking
-       positionDs.offset = positionDs.offset + 1;
-       
-       IF char = x'0A' OR char = x'0D';  // Newline (LF or CR)
-         // Handle CR+LF as single newline
-         IF char = x'0D';
-           IF PeekChar(buffer) = x'0A';
-             bufferDs.bufferPos = bufferDs.bufferPos + 1;
-             positionDs.offset = positionDs.offset + 1;
-           ENDIF;
-         ENDIF;
-         
-         positionDs.line = positionDs.line + 1;
-         positionDs.column = 1;
-       ELSE;
-         positionDs.column = positionDs.column + 1;
-       ENDIF;
-       
-       // Check if we need to refill soon
-       IF bufferDs.bytesInBuf - bufferDs.bufferPos < BUF_REFILL_THR;
-         IF bufferDs.bytesInAhead = 0 AND NOT bufferDs.isEOF;
-           RefillBuffer(buffer);
-         ENDIF;
-       ENDIF;
-       
-       RETURN char;
-      /END-FREE
+     C                   IF        buffer = *NULL
+     C                   RETURN    x'00'
+     C                   ENDIF
+      *
+      * Check if buffer needs refill
+     C                   IF        bufferDs.bufferPos >= bufferDs.bytesInBuf
+     C                   IF        NOT RefillBuffer(buffer)
+     C                   RETURN    x'00'
+     C                   ENDIF
+     C                   ENDIF
+      *
+      * Get character
+     C                   EVAL      char = %SUBST(bufferDs.buffer:
+     C                               bufferDs.bufferPos + 1: 1)
+      *
+      * Advance buffer position
+     C                   EVAL      bufferDs.bufferPos = bufferDs.bufferPos + 1
+      *
+      * Update position tracking
+     C                   EVAL      positionDs.offset = positionDs.offset + 1
+      *
+     C                   IF        char = x'0A' OR char = x'0D'
+      * Handle CR+LF as single newline
+     C                   IF        char = x'0D'
+     C                   IF        PeekChar(buffer) = x'0A'
+     C                   EVAL      bufferDs.bufferPos = bufferDs.bufferPos + 1
+     C                   EVAL      positionDs.offset = positionDs.offset + 1
+     C                   ENDIF
+     C                   ENDIF
+      *
+     C                   EVAL      positionDs.line = positionDs.line + 1
+     C                   EVAL      positionDs.column = 1
+     C                   ELSE
+     C                   EVAL      positionDs.column = positionDs.column + 1
+     C                   ENDIF
+      *
+      * Check if we need to refill soon
+     C                   IF        bufferDs.bytesInBuf - bufferDs.bufferPos <
+     C                               BUF_REFILL_THR
+     C                   IF        bufferDs.bytesInAhead = 0 AND
+     C                               NOT bufferDs.isEOF
+     C                   CALLP     RefillBuffer(buffer)
+     C                   ENDIF
+     C                   ENDIF
+      *
+     C                   RETURN    char
      P ReadChar        E
 
       *=====================================================================
@@ -264,23 +263,18 @@
      D positionDs      DS                  LIKEDS(Position)
      D                                     BASED(bufferDs.position)
       *
-      /FREE
-       IF buffer = *NULL;
-         RETURN *OFF;
-       ENDIF;
-       
-       IF bufferDs.bufferPos = 0;
-         RETURN *OFF;  // Can't unread past buffer start
-       ENDIF;
-       
-       bufferDs.bufferPos = bufferDs.bufferPos - 1;
-       positionDs.offset = positionDs.offset - 1;
-       
-       // Note: Column/line tracking not reversed (complex with newlines)
-       // This is acceptable for limited unread use cases
-       
-       RETURN *ON;
-      /END-FREE
+     C                   IF        buffer = *NULL
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   IF        bufferDs.bufferPos = 0
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   EVAL      bufferDs.bufferPos = bufferDs.bufferPos - 1
+     C                   EVAL      positionDs.offset = positionDs.offset - 1
+      *
+     C                   RETURN    *ON
      P UnreadChar      E
 
       *=====================================================================
@@ -293,14 +287,12 @@
       *
      D bufferDs        DS                  LIKEDS(BufferHandle) BASED(buffer)
       *
-      /FREE
-       IF buffer = *NULL;
-         RETURN *ON;
-       ENDIF;
-       
-       RETURN (bufferDs.isEOF AND
-               bufferDs.bufferPos >= bufferDs.bytesInBuf);
-      /END-FREE
+     C                   IF        buffer = *NULL
+     C                   RETURN    *ON
+     C                   ENDIF
+      *
+     C                   RETURN    (bufferDs.isEOF AND
+     C                               bufferDs.bufferPos >= bufferDs.bytesInBuf)
      P IsBufferEOF     E
 
       *=====================================================================
@@ -316,16 +308,14 @@
      D                                     BASED(bufferDs.position)
      D result          DS                  LIKEDS(Position)
       *
-      /FREE
-       CLEAR result;
-       
-       IF buffer = *NULL OR bufferDs.position = *NULL;
-         RETURN result;
-       ENDIF;
-       
-       result = positionDs;
-       RETURN result;
-      /END-FREE
+     C                   CLEAR                   result
+      *
+     C                   IF        buffer = *NULL OR bufferDs.position = *NULL
+     C                   RETURN    result
+     C                   ENDIF
+      *
+     C                   EVAL      result = positionDs
+     C                   RETURN    result
      P GetPosition     E
 
       *=====================================================================
@@ -340,13 +330,11 @@
      D positionDs      DS                  LIKEDS(Position)
      D                                     BASED(bufferDs.position)
       *
-      /FREE
-       IF buffer = *NULL OR bufferDs.position = *NULL;
-         RETURN 0;
-       ENDIF;
-       
-       RETURN positionDs.line;
-      /END-FREE
+     C                   IF        buffer = *NULL OR bufferDs.position = *NULL
+     C                   RETURN    0
+     C                   ENDIF
+      *
+     C                   RETURN    positionDs.line
      P GetLine         E
 
       *=====================================================================
@@ -361,13 +349,11 @@
      D positionDs      DS                  LIKEDS(Position)
      D                                     BASED(bufferDs.position)
       *
-      /FREE
-       IF buffer = *NULL OR bufferDs.position = *NULL;
-         RETURN 0;
-       ENDIF;
-       
-       RETURN positionDs.column;
-      /END-FREE
+     C                   IF        buffer = *NULL OR bufferDs.position = *NULL
+     C                   RETURN    0
+     C                   ENDIF
+      *
+     C                   RETURN    positionDs.column
      P GetColumn       E
 
       *=====================================================================
@@ -382,13 +368,11 @@
      D positionDs      DS                  LIKEDS(Position)
      D                                     BASED(bufferDs.position)
       *
-      /FREE
-       IF buffer = *NULL OR bufferDs.position = *NULL;
-         RETURN 0;
-       ENDIF;
-       
-       RETURN positionDs.offset;
-      /END-FREE
+     C                   IF        buffer = *NULL OR bufferDs.position = *NULL
+     C                   RETURN    0
+     C                   ENDIF
+      *
+     C                   RETURN    positionDs.offset
      P GetOffset       E
 
       *=====================================================================
@@ -401,27 +385,25 @@
       *
      D char            S              1A
       *
-      /FREE
-       IF buffer = *NULL;
-         RETURN *OFF;
-       ENDIF;
-       
-       char = PeekChar(buffer);
-       
-       DOW char = ' ' OR char = x'09' OR    // Space, Tab
-           char = x'0A' OR char = x'0D';    // LF, CR
-         
-         ReadChar(buffer);
-         
-         IF IsBufferEOF(buffer);
-           RETURN *ON;
-         ENDIF;
-         
-         char = PeekChar(buffer);
-       ENDDO;
-       
-       RETURN *ON;
-      /END-FREE
+     C                   IF        buffer = *NULL
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   EVAL      char = PeekChar(buffer)
+      *
+     C                   DOW       char = ' ' OR char = x'09' OR
+     C                               char = x'0A' OR char = x'0D'
+      *
+     C                   CALLP     ReadChar(buffer)
+      *
+     C                   IF        IsBufferEOF(buffer)
+     C                   RETURN    *ON
+     C                   ENDIF
+      *
+     C                   EVAL      char = PeekChar(buffer)
+     C                   ENDDO
+      *
+     C                   RETURN    *ON
      P SkipWhitespace  E
 
       *=====================================================================
@@ -438,26 +420,30 @@
      D i               S             10I 0
      D pos             S             10I 0
       *
-      /FREE
-       result = '';
-       
-       IF buffer = *NULL OR length <= 0;
-         RETURN result;
-       ENDIF;
-       
-       pos = bufferDs.bufferPos;
-       
-       FOR i = 1 TO length;
-         IF pos >= bufferDs.bytesInBuf;
-           LEAVE;
-         ENDIF;
-         
-         result = result + %SUBST(bufferDs.buffer: pos + 1: 1);
-         pos = pos + 1;
-       ENDFOR;
-       
-       RETURN result;
-      /END-FREE
+     C                   EVAL      result = ''
+      *
+     C                   IF        buffer = *NULL OR length <= 0
+     C                   RETURN    result
+     C                   ENDIF
+      *
+     C                   EVAL      pos = bufferDs.bufferPos
+      *
+     C                   DO        length        i
+     C                   IF        pos >= bufferDs.bytesInBuf
+     C                   IF        NOT bufferDs.isEOF
+     C                   CALLP     RefillBuffer(buffer)
+     C                   EVAL      pos = 0
+     C                   ELSE
+     C                   LEAVE
+     C                   ENDIF
+     C                   ENDIF
+      *
+     C                   EVAL      result = result +
+     C                               %SUBST(bufferDs.buffer: pos + 1: 1)
+     C                   EVAL      pos = pos + 1
+     C                   ENDDO
+      *
+     C                   RETURN    result
      P PeekString      E
 
       *=====================================================================

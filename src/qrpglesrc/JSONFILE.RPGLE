@@ -6,7 +6,7 @@
       *
       * Author: Mauro
       * Date: 2026-04-28
-      * Version: 1.0
+      * Version: 1.1 (Refactored to fixed-form)
       *
       * Story: E1-S1 - IFS File Stream Reader
       *=====================================================================
@@ -96,42 +96,48 @@
      D fd              S             10I 0
      D rc              S             10I 0
       *
-      /FREE
-       // Allocate file handle
-       handle = %ALLOC(%SIZE(FileHandle));
-       IF handle = *NULL;
-         SetFileError(ERR_MEM_ALLOC: path: 'Failed to allocate handle');
-         RETURN *NULL;
-       ENDIF;
-       
-       // Initialize handle
-       CLEAR handleDs;
-       handleDs.path = path;
-       handleDs.isOpen = *OFF;
-       handleDs.isEOF = *OFF;
-       handleDs.hasError = *OFF;
-       handleDs.position = 0;
-       handleDs.size = 0;
-       
-       // Get file size
-       rc = stat(%TRIM(path): %ADDR(statDs));
-       IF rc = 0;
-         handleDs.size = statDs.st_size;
-       ENDIF;
-       
-       // Open file for reading (text mode, UTF-8)
-       fd = open(%TRIM(path): O_RDONLY + O_TEXTDATA: S_IRUSR: 1208);
-       IF fd < 0;
-         DEALLOC handle;
-         SetFileError(ERR_FILE_NOTFND: path: 'File not found or access denied');
-         RETURN *NULL;
-       ENDIF;
-       
-       handleDs.fd = fd;
-       handleDs.isOpen = *ON;
-       
-       RETURN handle;
-      /END-FREE
+      * Allocate file handle
+     C                   EVAL      handle = %ALLOC(%SIZE(FileHandle))
+     C                   IF        handle = *NULL
+     C                   CALLP     SetFileError(ERR_MEM_ALLOC: path:
+     C                               'Failed to allocate handle')
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+      * Initialize handle
+     C                   CLEAR                   handleDs
+     C                   EVAL      handleDs.path = path
+     C                   EVAL      handleDs.isOpen = *OFF
+     C                   EVAL      handleDs.isEOF = *OFF
+     C                   EVAL      handleDs.hasError = *OFF
+     C                   EVAL      handleDs.position = 0
+     C                   EVAL      handleDs.size = 0
+      *
+      * Get file size
+     C                   EVAL      rc = stat(%TRIM(path): %ADDR(statDs))
+     C                   IF        rc = 0
+     C                   EVAL      handleDs.size = statDs.st_size
+     C                   ELSE
+     C     handle        DEALLOC
+     C                   CALLP     SetFileError(ERR_FILE_NOTFND: path:
+     C                               'File not found or access denied')
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+      * Open file for reading (text mode, UTF-8)
+     C                   EVAL      fd = open(%TRIM(path):
+     C                               O_RDONLY + O_TEXTDATA: S_IRUSR: 1208)
+     C                   IF        fd < 0
+     C     handle        DEALLOC
+     C                   CALLP     SetFileError(ERR_FILE_NOTFND: path:
+     C                               'File not found or access denied')
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+     C                   EVAL      handleDs.fd = fd
+     C                   EVAL      handleDs.isOpen = *ON
+      *
+     C                   RETURN    handle
      P OpenFile        E
 
       *=====================================================================
@@ -145,20 +151,18 @@
      D handleDs        DS                  LIKEDS(FileHandle) BASED(handle)
      D rc              S             10I 0
       *
-      /FREE
-       IF handle = *NULL;
-         RETURN *OFF;
-       ENDIF;
-       
-       IF handleDs.isOpen;
-         rc = close(handleDs.fd);
-         handleDs.isOpen = *OFF;
-       ENDIF;
-       
-       DEALLOC handle;
-       
-       RETURN *ON;
-      /END-FREE
+     C                   IF        handle = *NULL
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   IF        handleDs.isOpen
+     C                   EVAL      rc = close(handleDs.fd)
+     C                   EVAL      handleDs.isOpen = *OFF
+     C                   ENDIF
+      *
+     C     handle        DEALLOC
+      *
+     C                   RETURN    *ON
      P CloseFile       E
 
       *=====================================================================
@@ -176,40 +180,41 @@
      D readSize        S             10I 0
      D parmCount       S             10I 0
       *
-      /FREE
-       IF handle = *NULL OR NOT handleDs.isOpen;
-         RETURN -1;
-       ENDIF;
-       
-       IF handleDs.isEOF;
-         RETURN 0;
-       ENDIF;
-       
-       // Determine read size
-       parmCount = %PARMS();
-       IF parmCount >= 3;
-         readSize = size;
-       ELSE;
-         readSize = %SIZE(buffer);
-       ENDIF;
-       
-       // Read from file
-       bytesRead = read(handleDs.fd: %ADDR(buffer): readSize);
-       
-       IF bytesRead < 0;
-         handleDs.hasError = *ON;
-         SetFileError(ERR_FILE_READ: handleDs.path: 'Read error');
-         RETURN -1;
-       ENDIF;
-       
-       IF bytesRead = 0;
-         handleDs.isEOF = *ON;
-       ENDIF;
-       
-       handleDs.position = handleDs.position + bytesRead;
-       
-       RETURN bytesRead;
-      /END-FREE
+     C                   IF        handle = *NULL OR NOT handleDs.isOpen
+     C                   RETURN    -1
+     C                   ENDIF
+      *
+     C                   IF        handleDs.isEOF
+     C                   RETURN    0
+     C                   ENDIF
+      *
+      * Determine read size
+     C                   EVAL      parmCount = %PARMS()
+     C                   IF        parmCount >= 3
+     C                   EVAL      readSize = size
+     C                   ELSE
+     C                   EVAL      readSize = %SIZE(buffer)
+     C                   ENDIF
+      *
+      * Read from file
+     C                   EVAL      bytesRead = read(handleDs.fd:
+     C                               %ADDR(buffer): readSize)
+      *
+     C                   IF        bytesRead < 0
+     C                   EVAL      handleDs.hasError = *ON
+     C                   CALLP     SetFileError(ERR_FILE_READ:
+     C                               handleDs.path: 'Read error')
+     C                   RETURN    -1
+     C                   ENDIF
+      *
+     C                   IF        bytesRead = 0
+     C                   EVAL      handleDs.isEOF = *ON
+     C                   ENDIF
+      *
+     C                   EVAL      handleDs.position = handleDs.position +
+     C                               bytesRead
+      *
+     C                   RETURN    bytesRead
      P ReadChunk       E
 
       *=====================================================================
@@ -222,13 +227,11 @@
       *
      D handleDs        DS                  LIKEDS(FileHandle) BASED(handle)
       *
-      /FREE
-       IF handle = *NULL;
-         RETURN 0;
-       ENDIF;
-       
-       RETURN handleDs.size;
-      /END-FREE
+     C                   IF        handle = *NULL
+     C                   RETURN    0
+     C                   ENDIF
+      *
+     C                   RETURN    handleDs.size
      P GetFileSize     E
 
       *=====================================================================
@@ -243,13 +246,11 @@
       *
      D handleDs        DS                  LIKEDS(FileHandle) BASED(handle)
       *
-      /FREE
-       IF handle = *NULL;
-         RETURN 0;
-       ENDIF;
-       
-       RETURN handleDs.position;
-      /END-FREE
+     C                   IF        handle = *NULL
+     C                   RETURN    0
+     C                   ENDIF
+      *
+     C                   RETURN    handleDs.position
      P GetFilePosition...
      P                 E
 
@@ -263,13 +264,11 @@
       *
      D handleDs        DS                  LIKEDS(FileHandle) BASED(handle)
       *
-      /FREE
-       IF handle = *NULL;
-         RETURN *ON;
-       ENDIF;
-       
-       RETURN handleDs.isEOF;
-      /END-FREE
+     C                   IF        handle = *NULL
+     C                   RETURN    *ON
+     C                   ENDIF
+      *
+     C                   RETURN    handleDs.isEOF
      P IsEOF           E
 
       *=====================================================================
@@ -282,13 +281,11 @@
       *
      D handleDs        DS                  LIKEDS(FileHandle) BASED(handle)
       *
-      /FREE
-       IF handle = *NULL;
-         RETURN *ON;
-       ENDIF;
-       
-       RETURN handleDs.hasError;
-      /END-FREE
+     C                   IF        handle = *NULL
+     C                   RETURN    *ON
+     C                   ENDIF
+      *
+     C                   RETURN    handleDs.hasError
      P HasFileError    E
 
       *=====================================================================
@@ -306,30 +303,29 @@
      D rc              S             10I 0
      D parmCount       S             10I 0
       *
-      /FREE
-       IF handle = *NULL OR NOT handleDs.isOpen;
-         RETURN *OFF;
-       ENDIF;
-       
-       parmCount = %PARMS();
-       IF parmCount >= 3;
-         seekWhence = whence;
-       ELSE;
-         seekWhence = SEEK_SET;
-       ENDIF;
-       
-       rc = lseek(handleDs.fd: offset: seekWhence);
-       IF rc < 0;
-         handleDs.hasError = *ON;
-         SetFileError(ERR_FILE_READ: handleDs.path: 'Seek error');
-         RETURN *OFF;
-       ENDIF;
-       
-       handleDs.position = rc;
-       handleDs.isEOF = *OFF;
-       
-       RETURN *ON;
-      /END-FREE
+     C                   IF        handle = *NULL OR NOT handleDs.isOpen
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   EVAL      parmCount = %PARMS()
+     C                   IF        parmCount >= 3
+     C                   EVAL      seekWhence = whence
+     C                   ELSE
+     C                   EVAL      seekWhence = SEEK_SET
+     C                   ENDIF
+      *
+     C                   EVAL      rc = lseek(handleDs.fd: offset: seekWhence)
+     C                   IF        rc < 0
+     C                   EVAL      handleDs.hasError = *ON
+     C                   CALLP     SetFileError(ERR_FILE_READ:
+     C                               handleDs.path: 'Seek error')
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   EVAL      handleDs.position = rc
+     C                   EVAL      handleDs.isEOF = *OFF
+      *
+     C                   RETURN    *ON
      P SeekFile        E
 
       *=====================================================================
@@ -340,9 +336,7 @@
      D RewindFile      PI              N
      D   handle                        *   CONST
       *
-      /FREE
-       RETURN SeekFile(handle: 0: SEEK_SET);
-      /END-FREE
+     C                   RETURN    SeekFile(handle: 0: SEEK_SET)
      P RewindFile      E
 
       *=====================================================================
@@ -355,13 +349,11 @@
       *
      D handleDs        DS                  LIKEDS(FileHandle) BASED(handle)
       *
-      /FREE
-       IF handle = *NULL;
-         RETURN '';
-       ENDIF;
-       
-       RETURN handleDs.path;
-      /END-FREE
+     C                   IF        handle = *NULL
+     C                   RETURN    ''
+     C                   ENDIF
+      *
+     C                   RETURN    handleDs.path
      P GetFilePath     E
 
       *=====================================================================
@@ -374,10 +366,8 @@
       *
      D rc              S             10I 0
       *
-      /FREE
-       rc = stat(%TRIM(path): %ADDR(statDs));
-       RETURN (rc = 0);
-      /END-FREE
+     C                   EVAL      rc = stat(%TRIM(path): %ADDR(statDs))
+     C                   RETURN    (rc = 0)
      P FileExists      E
 
       *=====================================================================

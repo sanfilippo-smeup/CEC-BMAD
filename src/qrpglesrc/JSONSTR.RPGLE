@@ -6,7 +6,7 @@
       *
       * Author: Mauro
       * Date: 2026-04-28
-      * Version: 1.0
+      * Version: 1.1 (Refactored to fixed-form)
       *
       * Story: E1-S6 - String Utilities
       *=====================================================================
@@ -24,9 +24,7 @@
      D StrLen          PI            10I 0
      D   str                      32767A   CONST VARYING
       *
-      /FREE
-       RETURN %LEN(str);
-      /END-FREE
+     C                   RETURN    %LEN(str)
      P StrLen          E
 
       *=====================================================================
@@ -37,9 +35,7 @@
      D StrLenTrim      PI            10I 0
      D   str                      32767A   CONST VARYING
       *
-      /FREE
-       RETURN %LEN(%TRIM(str));
-      /END-FREE
+     C                   RETURN    %LEN(%TRIM(str))
      P StrLenTrim      E
 
       *=====================================================================
@@ -51,9 +47,7 @@
      D   str1                     32767A   CONST VARYING
      D   str2                     32767A   CONST VARYING
       *
-      /FREE
-       RETURN str1 + str2;
-      /END-FREE
+     C                   RETURN    str1 + str2
      P StrCat          E
 
       *=====================================================================
@@ -66,9 +60,7 @@
      D   str2                     32767A   CONST VARYING
      D   str3                     32767A   CONST VARYING
       *
-      /FREE
-       RETURN str1 + str2 + str3;
-      /END-FREE
+     C                   RETURN    str1 + str2 + str3
      P StrCat3         E
 
       *=====================================================================
@@ -81,15 +73,13 @@
      D   str1                     32767A   CONST VARYING
      D   str2                     32767A   CONST VARYING
       *
-      /FREE
-       IF str1 = str2;
-         RETURN 0;
-       ELSEIF str1 < str2;
-         RETURN -1;
-       ELSE;
-         RETURN 1;
-       ENDIF;
-      /END-FREE
+     C                   IF        str1 = str2
+     C                   RETURN    0
+     C                   ELSEIF    str1 < str2
+     C                   RETURN    -1
+     C                   ELSE
+     C                   RETURN    1
+     C                   ENDIF
      P StrCmp          E
 
       *=====================================================================
@@ -105,18 +95,16 @@
      D upper1          S          32767A   VARYING
      D upper2          S          32767A   VARYING
       *
-      /FREE
-       upper1 = %UPPER(str1);
-       upper2 = %UPPER(str2);
-       
-       IF upper1 = upper2;
-         RETURN 0;
-       ELSEIF upper1 < upper2;
-         RETURN -1;
-       ELSE;
-         RETURN 1;
-       ENDIF;
-      /END-FREE
+     C                   EVAL      upper1 = %UPPER(str1)
+     C                   EVAL      upper2 = %UPPER(str2)
+      *
+     C                   IF        upper1 = upper2
+     C                   RETURN    0
+     C                   ELSEIF    upper1 < upper2
+     C                   RETURN    -1
+     C                   ELSE
+     C                   RETURN    1
+     C                   ENDIF
      P StrCmpI         E
 
       *=====================================================================
@@ -128,9 +116,7 @@
      D   str1                     32767A   CONST VARYING
      D   str2                     32767A   CONST VARYING
       *
-      /FREE
-       RETURN (str1 = str2);
-      /END-FREE
+     C                   RETURN    (str1 = str2)
      P StrEquals       E
 
       *=====================================================================
@@ -142,9 +128,7 @@
      D   str1                     32767A   CONST VARYING
      D   str2                     32767A   CONST VARYING
       *
-      /FREE
-       RETURN (%UPPER(str1) = %UPPER(str2));
-      /END-FREE
+     C                   RETURN    (%UPPER(str1) = %UPPER(str2))
      P StrEqualsI      E
 
       *=====================================================================
@@ -156,10 +140,8 @@
      D   dest                     32767A   VARYING
      D   src                      32767A   CONST VARYING
       *
-      /FREE
-       dest = src;
-       RETURN *ON;
-      /END-FREE
+     C                   EVAL      dest = src
+     C                   RETURN    *ON
      P StrCopy         E
 
       *=====================================================================
@@ -170,9 +152,7 @@
      D StrTrim         PI         32767A   VARYING
      D   str                      32767A   CONST VARYING
       *
-      /FREE
-       RETURN %TRIM(str);
-      /END-FREE
+     C                   RETURN    %TRIM(str)
      P StrTrim         E
 
       *=====================================================================
@@ -183,9 +163,7 @@
      D StrTrimL        PI         32767A   VARYING
      D   str                      32767A   CONST VARYING
       *
-      /FREE
-       RETURN %TRIML(str);
-      /END-FREE
+     C                   RETURN    %TRIML(str)
      P StrTrimL        E
 
       *=====================================================================
@@ -196,9 +174,7 @@
      D StrTrimR        PI         32767A   VARYING
      D   str                      32767A   CONST VARYING
       *
-      /FREE
-       RETURN %TRIMR(str);
-      /END-FREE
+     C                   RETURN    %TRIMR(str)
      P StrTrimR        E
 
       *=====================================================================
@@ -209,9 +185,7 @@
      D StrUpper        PI         32767A   VARYING
      D   str                      32767A   CONST VARYING
       *
-      /FREE
-       RETURN %UPPER(str);
-      /END-FREE
+     C                   RETURN    %UPPER(str)
      P StrUpper        E
 
       *=====================================================================
@@ -222,9 +196,7 @@
      D StrLower        PI         32767A   VARYING
      D   str                      32767A   CONST VARYING
       *
-      /FREE
-       RETURN %LOWER(str);
-      /END-FREE
+     C                   RETURN    %LOWER(str)
      P StrLower        E
 
       *=====================================================================
@@ -239,15 +211,21 @@
       *
      D parmCount       S             10I 0
       *
-      /FREE
-       parmCount = %PARMS();
-       
-       IF parmCount >= 3;
-         RETURN %SUBST(str: start: length);
-       ELSE;
-         RETURN %SUBST(str: start);
-       ENDIF;
-      /END-FREE
+     C                   EVAL      parmCount = %PARMS()
+      *
+     C                   IF        start < 1 OR start > %LEN(str)
+     C                   RETURN    ''
+     C                   ENDIF
+      *
+     C                   IF        parmCount >= 3
+     C                   IF        start + length - 1 > %LEN(str)
+     C                   RETURN    %SUBST(str: start)
+     C                   ELSE
+     C                   RETURN    %SUBST(str: start: length)
+     C                   ENDIF
+     C                   ELSE
+     C                   RETURN    %SUBST(str: start)
+     C                   ENDIF
      P StrSubstr       E
 
       *=====================================================================
@@ -263,17 +241,15 @@
      D parmCount       S             10I 0
      D pos             S             10I 0
       *
-      /FREE
-       parmCount = %PARMS();
-       
-       IF parmCount >= 3;
-         pos = %SCAN(search: str: start);
-       ELSE;
-         pos = %SCAN(search: str);
-       ENDIF;
-       
-       RETURN pos;
-      /END-FREE
+     C                   EVAL      parmCount = %PARMS()
+      *
+     C                   IF        parmCount >= 3
+     C                   EVAL      pos = %SCAN(search: str: start)
+     C                   ELSE
+     C                   EVAL      pos = %SCAN(search: str)
+     C                   ENDIF
+      *
+     C                   RETURN    pos
      P StrPos          E
 
       *=====================================================================
@@ -290,24 +266,23 @@
      D pos             S             10I 0
      D searchLen       S             10I 0
       *
-      /FREE
-       result = str;
-       searchLen = %LEN(search);
-       
-       IF searchLen = 0;
-         RETURN result;
-       ENDIF;
-       
-       pos = %SCAN(search: result);
-       DOW pos > 0;
-         result = %SUBST(result: 1: pos - 1) +
-                  replace +
-                  %SUBST(result: pos + searchLen);
-         pos = %SCAN(search: result: pos + %LEN(replace));
-       ENDDO;
-       
-       RETURN result;
-      /END-FREE
+     C                   EVAL      result = str
+     C                   EVAL      searchLen = %LEN(search)
+      *
+     C                   IF        searchLen = 0
+     C                   RETURN    result
+     C                   ENDIF
+      *
+     C                   EVAL      pos = %SCAN(search: result)
+     C                   DOW       pos > 0
+     C                   EVAL      result = %SUBST(result: 1: pos - 1) +
+     C                               replace +
+     C                               %SUBST(result: pos + searchLen)
+     C                   EVAL      pos = %SCAN(search: result:
+     C                               pos + %LEN(replace))
+     C                   ENDDO
+      *
+     C                   RETURN    result
      P StrReplace      E
 
       *=====================================================================
@@ -321,19 +296,17 @@
       *
      D prefixLen       S             10I 0
       *
-      /FREE
-       prefixLen = %LEN(prefix);
-       
-       IF prefixLen = 0;
-         RETURN *ON;
-       ENDIF;
-       
-       IF %LEN(str) < prefixLen;
-         RETURN *OFF;
-       ENDIF;
-       
-       RETURN (%SUBST(str: 1: prefixLen) = prefix);
-      /END-FREE
+     C                   EVAL      prefixLen = %LEN(prefix)
+      *
+     C                   IF        prefixLen = 0
+     C                   RETURN    *ON
+     C                   ENDIF
+      *
+     C                   IF        %LEN(str) < prefixLen
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   RETURN    (%SUBST(str: 1: prefixLen) = prefix)
      P StrStartsWith   E
 
       *=====================================================================
@@ -349,21 +322,19 @@
      D strLen          S             10I 0
      D startPos        S             10I 0
       *
-      /FREE
-       suffixLen = %LEN(suffix);
-       strLen = %LEN(str);
-       
-       IF suffixLen = 0;
-         RETURN *ON;
-       ENDIF;
-       
-       IF strLen < suffixLen;
-         RETURN *OFF;
-       ENDIF;
-       
-       startPos = strLen - suffixLen + 1;
-       RETURN (%SUBST(str: startPos: suffixLen) = suffix);
-      /END-FREE
+     C                   EVAL      suffixLen = %LEN(suffix)
+     C                   EVAL      strLen = %LEN(str)
+      *
+     C                   IF        suffixLen = 0
+     C                   RETURN    *ON
+     C                   ENDIF
+      *
+     C                   IF        strLen < suffixLen
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   EVAL      startPos = strLen - suffixLen + 1
+     C                   RETURN    (%SUBST(str: startPos: suffixLen) = suffix)
      P StrEndsWith     E
 
       *=====================================================================
@@ -375,9 +346,7 @@
      D   str                      32767A   CONST VARYING
      D   search                   32767A   CONST VARYING
       *
-      /FREE
-       RETURN (%SCAN(search: str) > 0);
-      /END-FREE
+     C                   RETURN    (%SCAN(search: str) > 0)
      P StrContains     E
 
       *=====================================================================
@@ -388,9 +357,7 @@
      D StrIsEmpty      PI              N
      D   str                      32767A   CONST VARYING
       *
-      /FREE
-       RETURN (%LEN(str) = 0);
-      /END-FREE
+     C                   RETURN    (%LEN(str) = 0)
      P StrIsEmpty      E
 
       *=====================================================================
@@ -401,9 +368,7 @@
      D StrIsBlank      PI              N
      D   str                      32767A   CONST VARYING
       *
-      /FREE
-       RETURN (%LEN(%TRIM(str)) = 0);
-      /END-FREE
+     C                   RETURN    (%LEN(%TRIM(str)) = 0)
      P StrIsBlank      E
 
       *=====================================================================
@@ -418,19 +383,17 @@
      D result          S          32767A   VARYING
      D i               S             10I 0
       *
-      /FREE
-       result = '';
-       
-       IF count <= 0;
-         RETURN result;
-       ENDIF;
-       
-       FOR i = 1 TO count;
-         result = result + str;
-       ENDFOR;
-       
-       RETURN result;
-      /END-FREE
+     C                   EVAL      result = ''
+      *
+     C                   IF        count <= 0
+     C                   RETURN    result
+     C                   ENDIF
+      *
+     C                   DO        count         i
+     C                   EVAL      result = result + str
+     C                   ENDDO
+      *
+     C                   RETURN    result
      P StrRepeat       E
 
       *=====================================================================
@@ -449,26 +412,24 @@
      D padLen          S             10I 0
      D parmCount       S             10I 0
       *
-      /FREE
-       parmCount = %PARMS();
-       
-       IF parmCount >= 3;
-         pad = padChar;
-       ELSE;
-         pad = ' ';
-       ENDIF;
-       
-       strLen = %LEN(str);
-       
-       IF strLen >= length;
-         RETURN str;
-       ENDIF;
-       
-       padLen = length - strLen;
-       result = StrRepeat(pad: padLen) + str;
-       
-       RETURN result;
-      /END-FREE
+     C                   EVAL      parmCount = %PARMS()
+      *
+     C                   IF        parmCount >= 3
+     C                   EVAL      pad = padChar
+     C                   ELSE
+     C                   EVAL      pad = ' '
+     C                   ENDIF
+      *
+     C                   EVAL      strLen = %LEN(str)
+      *
+     C                   IF        strLen >= length
+     C                   RETURN    str
+     C                   ENDIF
+      *
+     C                   EVAL      padLen = length - strLen
+     C                   EVAL      result = StrRepeat(pad: padLen) + str
+      *
+     C                   RETURN    result
      P StrPadLeft      E
 
       *=====================================================================
@@ -487,26 +448,24 @@
      D padLen          S             10I 0
      D parmCount       S             10I 0
       *
-      /FREE
-       parmCount = %PARMS();
-       
-       IF parmCount >= 3;
-         pad = padChar;
-       ELSE;
-         pad = ' ';
-       ENDIF;
-       
-       strLen = %LEN(str);
-       
-       IF strLen >= length;
-         RETURN str;
-       ENDIF;
-       
-       padLen = length - strLen;
-       result = str + StrRepeat(pad: padLen);
-       
-       RETURN result;
-      /END-FREE
+     C                   EVAL      parmCount = %PARMS()
+      *
+     C                   IF        parmCount >= 3
+     C                   EVAL      pad = padChar
+     C                   ELSE
+     C                   EVAL      pad = ' '
+     C                   ENDIF
+      *
+     C                   EVAL      strLen = %LEN(str)
+      *
+     C                   IF        strLen >= length
+     C                   RETURN    str
+     C                   ENDIF
+      *
+     C                   EVAL      padLen = length - strLen
+     C                   EVAL      result = str + StrRepeat(pad: padLen)
+      *
+     C                   RETURN    result
      P StrPadRight     E
 
       *=====================================================================

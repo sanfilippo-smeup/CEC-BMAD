@@ -6,7 +6,7 @@
       *
       * Author: Mauro
       * Date: 2026-04-28
-      * Version: 1.0
+      * Version: 1.1 (Refactored to fixed-form)
       *
       * Story: E1-S5 - Error Handling Framework
       *=====================================================================
@@ -32,14 +32,11 @@
       *
      D success         S               N   INZ(*ON)
       *
-      /FREE
-       // Clear global error state
-       CLEAR gErrorInfo;
-       gHasError = *OFF;
-       gIndicator35 = *OFF;
-       
-       RETURN success;
-      /END-FREE
+     C                   CLEAR                   gErrorInfo
+     C                   EVAL      gHasError = *OFF
+     C                   EVAL      gIndicator35 = *OFF
+      *
+     C                   RETURN    success
      P InitError       E
 
       *=====================================================================
@@ -56,41 +53,39 @@
       *
      D parmCount       S             10I 0
       *
-      /FREE
-       // Set error code
-       gErrorInfo.errorCode = code;
-       
-       // Set error message
-       gErrorInfo.message = msg;
-       
-       // Set position if provided
-       parmCount = %PARMS();
-       IF parmCount >= 3;
-         gErrorInfo.line = line;
-       ELSE;
-         gErrorInfo.line = 0;
-       ENDIF;
-       
-       IF parmCount >= 4;
-         gErrorInfo.column = col;
-       ELSE;
-         gErrorInfo.column = 0;
-       ENDIF;
-       
-       // Set context if provided
-       IF parmCount >= 5;
-         gErrorInfo.context = ctx;
-       ELSE;
-         gErrorInfo.context = '';
-       ENDIF;
-       
-       // Set error flags
-       gHasError = *ON;
-       gIndicator35 = *ON;
-       *IN35 = *ON;
-       
-       RETURN *ON;
-      /END-FREE
+      * Set error code
+     C                   EVAL      gErrorInfo.errorCode = code
+      *
+      * Set error message
+     C                   EVAL      gErrorInfo.message = msg
+      *
+      * Set position if provided
+     C                   EVAL      parmCount = %PARMS()
+     C                   IF        parmCount >= 3
+     C                   EVAL      gErrorInfo.line = line
+     C                   ELSE
+     C                   EVAL      gErrorInfo.line = 0
+     C                   ENDIF
+      *
+     C                   IF        parmCount >= 4
+     C                   EVAL      gErrorInfo.column = col
+     C                   ELSE
+     C                   EVAL      gErrorInfo.column = 0
+     C                   ENDIF
+      *
+      * Set context if provided
+     C                   IF        parmCount >= 5
+     C                   EVAL      gErrorInfo.context = ctx
+     C                   ELSE
+     C                   EVAL      gErrorInfo.context = ''
+     C                   ENDIF
+      *
+      * Set error flags
+     C                   EVAL      gHasError = *ON
+     C                   EVAL      gIndicator35 = *ON
+     C                   SETON                                        35
+      *
+     C                   RETURN    *ON
      P SetError        E
 
       *=====================================================================
@@ -101,15 +96,13 @@
      D GetError        PI              N
      D   errorInfo                         LIKEDS(ErrorInfo)
       *
-      /FREE
-       IF gHasError;
-         errorInfo = gErrorInfo;
-         RETURN *ON;
-       ELSE;
-         CLEAR errorInfo;
-         RETURN *OFF;
-       ENDIF;
-      /END-FREE
+     C                   IF        gHasError
+     C                   EVAL      errorInfo = gErrorInfo
+     C                   RETURN    *ON
+     C                   ELSE
+     C                   CLEAR                   errorInfo
+     C                   RETURN    *OFF
+     C                   ENDIF
      P GetError        E
 
       *=====================================================================
@@ -119,14 +112,12 @@
      P ClearError      B                   EXPORT
      D ClearError      PI              N
       *
-      /FREE
-       CLEAR gErrorInfo;
-       gHasError = *OFF;
-       gIndicator35 = *OFF;
-       *IN35 = *OFF;
-       
-       RETURN *ON;
-      /END-FREE
+     C                   CLEAR                   gErrorInfo
+     C                   EVAL      gHasError = *OFF
+     C                   EVAL      gIndicator35 = *OFF
+     C                   SETOFF                                       35
+      *
+     C                   RETURN    *ON
      P ClearError      E
 
       *=====================================================================
@@ -136,9 +127,7 @@
      P IsError         B                   EXPORT
      D IsError         PI              N
       *
-      /FREE
-       RETURN gHasError;
-      /END-FREE
+     C                   RETURN    gHasError
      P IsError         E
 
       *=====================================================================
@@ -148,13 +137,11 @@
      P GetErrorCode    B                   EXPORT
      D GetErrorCode    PI            10A
       *
-      /FREE
-       IF gHasError;
-         RETURN gErrorInfo.errorCode;
-       ELSE;
-         RETURN '';
-       ENDIF;
-      /END-FREE
+     C                   IF        gHasError
+     C                   RETURN    gErrorInfo.errorCode
+     C                   ELSE
+     C                   RETURN    ''
+     C                   ENDIF
      P GetErrorCode    E
 
       *=====================================================================
@@ -164,13 +151,11 @@
      P GetErrorMsg     B                   EXPORT
      D GetErrorMsg     PI           256A   VARYING
       *
-      /FREE
-       IF gHasError;
-         RETURN gErrorInfo.message;
-       ELSE;
-         RETURN '';
-       ENDIF;
-      /END-FREE
+     C                   IF        gHasError
+     C                   RETURN    gErrorInfo.message
+     C                   ELSE
+     C                   RETURN    ''
+     C                   ENDIF
      P GetErrorMsg     E
 
       *=====================================================================
@@ -183,29 +168,29 @@
       *
      D formatted       S            512A   VARYING
       *
-      /FREE
-       // Start with error code and message
-       formatted = 'Error ' + %TRIM(errorInfo.errorCode) + ': ' +
-                   errorInfo.message;
-       
-       // Add position if available
-       IF errorInfo.line > 0;
-         formatted = formatted + ' at line ' +
-                     %CHAR(errorInfo.line);
-         
-         IF errorInfo.column > 0;
-           formatted = formatted + ', column ' +
-                       %CHAR(errorInfo.column);
-         ENDIF;
-       ENDIF;
-       
-       // Add context if available
-       IF errorInfo.context <> '';
-         formatted = formatted + ' [' + errorInfo.context + ']';
-       ENDIF;
-       
-       RETURN formatted;
-      /END-FREE
+      * Start with error code and message
+     C                   EVAL      formatted = 'Error ' +
+     C                               %TRIM(errorInfo.errorCode) + ': ' +
+     C                               errorInfo.message
+      *
+      * Add position if available
+     C                   IF        errorInfo.line > 0
+     C                   EVAL      formatted = formatted + ' at line ' +
+     C                               %CHAR(errorInfo.line)
+      *
+     C                   IF        errorInfo.column > 0
+     C                   EVAL      formatted = formatted + ', column ' +
+     C                               %CHAR(errorInfo.column)
+     C                   ENDIF
+     C                   ENDIF
+      *
+      * Add context if available
+     C                   IF        errorInfo.context <> ''
+     C                   EVAL      formatted = formatted + ' [' +
+     C                               errorInfo.context + ']'
+     C                   ENDIF
+      *
+     C                   RETURN    formatted
      P FormatError     E
 
       *=====================================================================
@@ -217,13 +202,11 @@
      D FormatCurrentError...
      D                 PI           512A   VARYING
       *
-      /FREE
-       IF gHasError;
-         RETURN FormatError(gErrorInfo);
-       ELSE;
-         RETURN 'No error';
-       ENDIF;
-      /END-FREE
+     C                   IF        gHasError
+     C                   RETURN    FormatError(gErrorInfo)
+     C                   ELSE
+     C                   RETURN    'No error'
+     C                   ENDIF
      P FormatCurrentError...
      P                 E
 
@@ -241,21 +224,19 @@
      D ctx             S            128A   VARYING
      D parmCount       S             10I 0
       *
-      /FREE
-       // Build error message
-       msg = 'File error: ' + path;
-       
-       // Add detail if provided
-       parmCount = %PARMS();
-       IF parmCount >= 3;
-         msg = msg + ' - ' + detail;
-       ENDIF;
-       
-       // Set context
-       ctx = 'File I/O';
-       
-       RETURN SetError(code: msg: 0: 0: ctx);
-      /END-FREE
+      * Build error message
+     C                   EVAL      msg = 'File error: ' + path
+      *
+      * Add detail if provided
+     C                   EVAL      parmCount = %PARMS()
+     C                   IF        parmCount >= 3
+     C                   EVAL      msg = msg + ' - ' + detail
+     C                   ENDIF
+      *
+      * Set context
+     C                   EVAL      ctx = 'File I/O'
+      *
+     C                   RETURN    SetError(code: msg: 0: 0: ctx)
      P SetFileError    E
 
       *=====================================================================
@@ -274,19 +255,17 @@
      D ctx             S            128A   VARYING
      D parmCount       S             10I 0
       *
-      /FREE
-       fullMsg = msg;
-       
-       // Add "near" context if provided
-       parmCount = %PARMS();
-       IF parmCount >= 5 AND near <> '';
-         ctx = 'Near: ' + near;
-       ELSE;
-         ctx = 'JSON Parsing';
-       ENDIF;
-       
-       RETURN SetError(code: fullMsg: line: col: ctx);
-      /END-FREE
+     C                   EVAL      fullMsg = msg
+      *
+      * Add "near" context if provided
+     C                   EVAL      parmCount = %PARMS()
+     C                   IF        parmCount >= 5 AND near <> ''
+     C                   EVAL      ctx = 'Near: ' + near
+     C                   ELSE
+     C                   EVAL      ctx = 'JSON Parsing'
+     C                   ENDIF
+      *
+     C                   RETURN    SetError(code: fullMsg: line: col: ctx)
      P SetParseError   E
 
       *=====================================================================
@@ -303,19 +282,17 @@
      D ctx             S            128A   VARYING
      D parmCount       S             10I 0
       *
-      /FREE
-       fullMsg = msg;
-       
-       // Add query context if provided
-       parmCount = %PARMS();
-       IF parmCount >= 3 AND query <> '';
-         ctx = 'Query: ' + query;
-       ELSE;
-         ctx = 'JSONPath Query';
-       ENDIF;
-       
-       RETURN SetError(code: fullMsg: 0: 0: ctx);
-      /END-FREE
+     C                   EVAL      fullMsg = msg
+      *
+      * Add query context if provided
+     C                   EVAL      parmCount = %PARMS()
+     C                   IF        parmCount >= 3 AND query <> ''
+     C                   EVAL      ctx = 'Query: ' + query
+     C                   ELSE
+     C                   EVAL      ctx = 'JSONPath Query'
+     C                   ENDIF
+      *
+     C                   RETURN    SetError(code: fullMsg: 0: 0: ctx)
      P SetQueryError   E
 
       *=====================================================================
@@ -330,12 +307,10 @@
      D msg             S            256A   VARYING
      D ctx             S            128A   VARYING
       *
-      /FREE
-       msg = 'Memory error during: ' + operation;
-       ctx = 'Memory Management';
-       
-       RETURN SetError(code: msg: 0: 0: ctx);
-      /END-FREE
+     C                   EVAL      msg = 'Memory error during: ' + operation
+     C                   EVAL      ctx = 'Memory Management'
+      *
+     C                   RETURN    SetError(code: msg: 0: 0: ctx)
      P SetMemoryError  E
 
       *=====================================================================
@@ -345,14 +320,12 @@
      P IsFileError     B                   EXPORT
      D IsFileError     PI              N
       *
-      /FREE
-       IF NOT gHasError;
-         RETURN *OFF;
-       ENDIF;
-       
-       RETURN (gErrorInfo.errorCode >= ERR_FILE_MIN AND
-               gErrorInfo.errorCode <= ERR_FILE_MAX);
-      /END-FREE
+     C                   IF        NOT gHasError
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   RETURN    (gErrorInfo.errorCode >= ERR_FILE_MIN AND
+     C                               gErrorInfo.errorCode <= ERR_FILE_MAX)
      P IsFileError     E
 
       *=====================================================================
@@ -362,14 +335,12 @@
      P IsParseError    B                   EXPORT
      D IsParseError    PI              N
       *
-      /FREE
-       IF NOT gHasError;
-         RETURN *OFF;
-       ENDIF;
-       
-       RETURN (gErrorInfo.errorCode >= ERR_PARSE_MIN AND
-               gErrorInfo.errorCode <= ERR_PARSE_MAX);
-      /END-FREE
+     C                   IF        NOT gHasError
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   RETURN    (gErrorInfo.errorCode >= ERR_PARSE_MIN AND
+     C                               gErrorInfo.errorCode <= ERR_PARSE_MAX)
      P IsParseError    E
 
       *=====================================================================
@@ -379,14 +350,12 @@
      P IsQueryError    B                   EXPORT
      D IsQueryError    PI              N
       *
-      /FREE
-       IF NOT gHasError;
-         RETURN *OFF;
-       ENDIF;
-       
-       RETURN (gErrorInfo.errorCode >= ERR_QUERY_MIN AND
-               gErrorInfo.errorCode <= ERR_QUERY_MAX);
-      /END-FREE
+     C                   IF        NOT gHasError
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   RETURN    (gErrorInfo.errorCode >= ERR_QUERY_MIN AND
+     C                               gErrorInfo.errorCode <= ERR_QUERY_MAX)
      P IsQueryError    E
 
       *=====================================================================
@@ -396,14 +365,12 @@
      P IsRuntimeError  B                   EXPORT
      D IsRuntimeError  PI              N
       *
-      /FREE
-       IF NOT gHasError;
-         RETURN *OFF;
-       ENDIF;
-       
-       RETURN (gErrorInfo.errorCode >= ERR_RUNTIME_MIN AND
-               gErrorInfo.errorCode <= ERR_RUNTIME_MAX);
-      /END-FREE
+     C                   IF        NOT gHasError
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   RETURN    (gErrorInfo.errorCode >= ERR_RUNTIME_MIN AND
+     C                               gErrorInfo.errorCode <= ERR_RUNTIME_MAX)
      P IsRuntimeError  E
 
       *=====================================================================

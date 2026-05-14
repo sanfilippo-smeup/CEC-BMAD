@@ -6,7 +6,7 @@
       *
       * Author: Mauro
       * Date: 2026-04-28
-      * Version: 1.0
+      * Version: 1.1 (Refactored to fixed-form)
       *
       * Story: E1-S3 - Memory Allocation Framework
       *=====================================================================
@@ -47,65 +47,67 @@
      D i               S             10I 0
      D nodePtr         S               *
      D prevPtr         S               *
+     D nextPtr         S               *   BASED(prevPtr)
       *
-      /FREE
-       // Determine pool size
-       parmCount = %PARMS();
-       IF parmCount >= 1;
-         size = poolSize;
-       ELSE;
-         size = POOL_SIZE_DFLT;
-       ENDIF;
-       
-       // Allocate pool structure
-       pool = malloc(%SIZE(MemoryPool));
-       IF pool = *NULL;
-         SetMemoryError(ERR_MEM_POOL: 'InitMemoryPool');
-         RETURN *NULL;
-       ENDIF;
-       
-       // Initialize pool structure
-       memset(pool: 0: %SIZE(MemoryPool));
-       poolDs.poolSize = size;
-       poolDs.nodeSize = NODE_SIZE;
-       poolDs.totalNodes = size;
-       poolDs.usedNodes = 0;
-       poolDs.freeNodes = size;
-       poolDs.peakUsage = 0;
-       poolDs.allocCount = 0;
-       poolDs.freeCount = 0;
-       
-       // Allocate pool memory
-       totalSize = size * NODE_SIZE;
-       poolDs.poolMemory = malloc(totalSize);
-       IF poolDs.poolMemory = *NULL;
-         free(pool);
-         SetMemoryError(ERR_MEM_POOL: 'InitMemoryPool - pool memory');
-         RETURN *NULL;
-       ENDIF;
-       
-       // Initialize free list
-       poolDs.freeListHead = poolDs.poolMemory;
-       prevPtr = *NULL;
-       
-       FOR i = 0 TO size - 1;
-         nodePtr = poolDs.poolMemory + (i * NODE_SIZE);
-         
-         // Link to previous node
-         IF prevPtr <> *NULL;
-           %ADDR(prevPtr) = nodePtr;
-         ENDIF;
-         
-         prevPtr = nodePtr;
-       ENDFOR;
-       
-       // Last node points to NULL
-       IF prevPtr <> *NULL;
-         %ADDR(prevPtr) = *NULL;
-       ENDIF;
-       
-       RETURN pool;
-      /END-FREE
+      * Determine pool size
+     C                   EVAL      parmCount = %PARMS()
+     C                   IF        parmCount >= 1
+     C                   EVAL      size = poolSize
+     C                   ELSE
+     C                   EVAL      size = POOL_SIZE_DFLT
+     C                   ENDIF
+      *
+      * Allocate pool structure
+     C                   EVAL      pool = malloc(%SIZE(MemoryPool))
+     C                   IF        pool = *NULL
+     C                   CALLP     SetMemoryError(ERR_MEM_POOL:
+     C                               'InitMemoryPool')
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+      * Initialize pool structure
+     C                   CALLP     memset(pool: 0: %SIZE(MemoryPool))
+     C                   EVAL      poolDs.poolSize = size
+     C                   EVAL      poolDs.nodeSize = NODE_SIZE
+     C                   EVAL      poolDs.totalNodes = size
+     C                   EVAL      poolDs.usedNodes = 0
+     C                   EVAL      poolDs.freeNodes = size
+     C                   EVAL      poolDs.peakUsage = 0
+     C                   EVAL      poolDs.allocCount = 0
+     C                   EVAL      poolDs.freeCount = 0
+      *
+      * Allocate pool memory
+     C                   EVAL      totalSize = size * NODE_SIZE
+     C                   EVAL      poolDs.poolMemory = malloc(totalSize)
+     C                   IF        poolDs.poolMemory = *NULL
+     C                   CALLP     free(pool)
+     C                   CALLP     SetMemoryError(ERR_MEM_POOL:
+     C                               'InitMemoryPool - pool memory')
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+      * Initialize free list
+     C                   EVAL      poolDs.freeListHead = poolDs.poolMemory
+     C                   EVAL      prevPtr = *NULL
+      *
+     C                   DO        size          i
+     C                   EVAL      nodePtr = poolDs.poolMemory +
+     C                               ((i-1) * NODE_SIZE)
+      *
+      * Link to previous node
+     C                   IF        prevPtr <> *NULL
+     C                   EVAL      nextPtr = nodePtr
+     C                   ENDIF
+      *
+     C                   EVAL      prevPtr = nodePtr
+     C                   ENDDO
+      *
+      * Last node points to NULL
+     C                   IF        prevPtr <> *NULL
+     C                   EVAL      nextPtr = *NULL
+     C                   ENDIF
+      *
+     C                   RETURN    pool
      P InitMemoryPool  E
 
       *=====================================================================
@@ -118,21 +120,19 @@
       *
      D poolDs          DS                  LIKEDS(MemoryPool) BASED(pool)
       *
-      /FREE
-       IF pool = *NULL;
-         RETURN *OFF;
-       ENDIF;
-       
-       // Free pool memory
-       IF poolDs.poolMemory <> *NULL;
-         free(poolDs.poolMemory);
-       ENDIF;
-       
-       // Free pool structure
-       free(pool);
-       
-       RETURN *ON;
-      /END-FREE
+     C                   IF        pool = *NULL
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+      * Free pool memory
+     C                   IF        poolDs.poolMemory <> *NULL
+     C                   CALLP     free(poolDs.poolMemory)
+     C                   ENDIF
+      *
+      * Free pool structure
+     C                   CALLP     free(pool)
+      *
+     C                   RETURN    *ON
      P CleanupPool     E
 
       *=====================================================================
@@ -145,41 +145,40 @@
       *
      D poolDs          DS                  LIKEDS(MemoryPool) BASED(pool)
      D nodePtr         S               *
-     D nextPtr         S               *
+     D nextPtr         S               *   BASED(nodePtr)
       *
-      /FREE
-       IF pool = *NULL;
-         SetMemoryError(ERR_MEM_POOL: 'AllocNode - null pool');
-         RETURN *NULL;
-       ENDIF;
-       
-       // Check if pool is exhausted
-       IF poolDs.freeListHead = *NULL;
-         SetMemoryError(ERR_MEM_ALLOC: 'AllocNode - pool exhausted');
-         RETURN *NULL;
-       ENDIF;
-       
-       // Get node from free list
-       nodePtr = poolDs.freeListHead;
-       
-       // Update free list head to next node
-       nextPtr = %ADDR(nodePtr);
-       poolDs.freeListHead = nextPtr;
-       
-       // Clear node memory
-       memset(nodePtr: 0: NODE_SIZE);
-       
-       // Update statistics
-       poolDs.usedNodes = poolDs.usedNodes + 1;
-       poolDs.freeNodes = poolDs.freeNodes - 1;
-       poolDs.allocCount = poolDs.allocCount + 1;
-       
-       IF poolDs.usedNodes > poolDs.peakUsage;
-         poolDs.peakUsage = poolDs.usedNodes;
-       ENDIF;
-       
-       RETURN nodePtr;
-      /END-FREE
+     C                   IF        pool = *NULL
+     C                   CALLP     SetMemoryError(ERR_MEM_POOL:
+     C                               'AllocNode - null pool')
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+      * Check if pool is exhausted
+     C                   IF        poolDs.freeListHead = *NULL
+     C                   CALLP     SetMemoryError(ERR_MEM_ALLOC:
+     C                               'AllocNode - pool exhausted')
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+      * Get node from free list
+     C                   EVAL      nodePtr = poolDs.freeListHead
+      *
+      * Update free list head to next node
+     C                   EVAL      poolDs.freeListHead = nextPtr
+      *
+      * Clear node memory
+     C                   CALLP     memset(nodePtr: 0: NODE_SIZE)
+      *
+      * Update statistics
+     C                   EVAL      poolDs.usedNodes = poolDs.usedNodes + 1
+     C                   EVAL      poolDs.freeNodes = poolDs.freeNodes - 1
+     C                   EVAL      poolDs.allocCount = poolDs.allocCount + 1
+      *
+     C                   IF        poolDs.usedNodes > poolDs.peakUsage
+     C                   EVAL      poolDs.peakUsage = poolDs.usedNodes
+     C                   ENDIF
+      *
+     C                   RETURN    nodePtr
      P AllocNode       E
 
       *=====================================================================
@@ -192,27 +191,25 @@
      D   node                          *   CONST
       *
      D poolDs          DS                  LIKEDS(MemoryPool) BASED(pool)
-     D nodeDs          DS                  LIKEDS(JsonNode) BASED(node)
+     D nextPtr         S               *   BASED(node)
       *
-      /FREE
-       IF pool = *NULL OR node = *NULL;
-         RETURN *OFF;
-       ENDIF;
-       
-       // Clear node data
-       memset(node: 0: NODE_SIZE);
-       
-       // Add node to free list
-       %ADDR(node) = poolDs.freeListHead;
-       poolDs.freeListHead = node;
-       
-       // Update statistics
-       poolDs.usedNodes = poolDs.usedNodes - 1;
-       poolDs.freeNodes = poolDs.freeNodes + 1;
-       poolDs.freeCount = poolDs.freeCount + 1;
-       
-       RETURN *ON;
-      /END-FREE
+     C                   IF        pool = *NULL OR node = *NULL
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+      * Clear node data
+     C                   CALLP     memset(node: 0: NODE_SIZE)
+      *
+      * Add node to free list
+     C                   EVAL      nextPtr = poolDs.freeListHead
+     C                   EVAL      poolDs.freeListHead = node
+      *
+      * Update statistics
+     C                   EVAL      poolDs.usedNodes = poolDs.usedNodes - 1
+     C                   EVAL      poolDs.freeNodes = poolDs.freeNodes + 1
+     C                   EVAL      poolDs.freeCount = poolDs.freeCount + 1
+      *
+     C                   RETURN    *ON
      P FreeNode        E
 
       *=====================================================================
@@ -225,25 +222,24 @@
      D   node                          *   CONST
       *
      D nodeDs          DS                  LIKEDS(JsonNode) BASED(node)
+     D childDs         DS                  LIKEDS(JsonNode) BASED(child)
      D child           S               *
      D nextChild       S               *
       *
-      /FREE
-       IF pool = *NULL OR node = *NULL;
-         RETURN *OFF;
-       ENDIF;
-       
-       // Free all children first
-       child = nodeDs.firstChild;
-       DOW child <> *NULL;
-         nextChild = nodeDs.nextSibling;
-         FreeNodeTree(pool: child);
-         child = nextChild;
-       ENDDO;
-       
-       // Free this node
-       RETURN FreeNode(pool: node);
-      /END-FREE
+     C                   IF        pool = *NULL OR node = *NULL
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+      * Free all children first
+     C                   EVAL      child = nodeDs.firstChild
+     C                   DOW       child <> *NULL
+     C                   EVAL      nextChild = childDs.nextSibling
+     C                   CALLP     FreeNodeTree(pool: child)
+     C                   EVAL      child = nextChild
+     C                   ENDDO
+      *
+      * Free this node
+     C                   RETURN    FreeNode(pool: node)
      P FreeNodeTree    E
 
       *=====================================================================
@@ -257,30 +253,29 @@
      D poolDs          DS                  LIKEDS(MemoryPool) BASED(pool)
      D stats           DS                  LIKEDS(PoolStats)
       *
-      /FREE
-       CLEAR stats;
-       
-       IF pool = *NULL;
-         RETURN stats;
-       ENDIF;
-       
-       stats.totalNodes = poolDs.totalNodes;
-       stats.usedNodes = poolDs.usedNodes;
-       stats.freeNodes = poolDs.freeNodes;
-       stats.peakUsage = poolDs.peakUsage;
-       stats.allocCount = poolDs.allocCount;
-       stats.freeCount = poolDs.freeCount;
-       
-       // Calculate fragmentation (simplified)
-       IF poolDs.totalNodes > 0;
-         stats.fragmentation =
-           (poolDs.usedNodes * 100) / poolDs.totalNodes;
-       ELSE;
-         stats.fragmentation = 0;
-       ENDIF;
-       
-       RETURN stats;
-      /END-FREE
+     C                   CLEAR                   stats
+      *
+     C                   IF        pool = *NULL
+     C                   RETURN    stats
+     C                   ENDIF
+      *
+     C                   EVAL      stats.totalNodes = poolDs.totalNodes
+     C                   EVAL      stats.usedNodes = poolDs.usedNodes
+     C                   EVAL      stats.freeNodes = poolDs.freeNodes
+     C                   EVAL      stats.peakUsage = poolDs.peakUsage
+     C                   EVAL      stats.allocCount = poolDs.allocCount
+     C                   EVAL      stats.freeCount = poolDs.freeCount
+      *
+      * Calculate fragmentation (simplified)
+     C                   IF        poolDs.totalNodes > 0
+     C                   EVAL      stats.fragmentation =
+     C                               (poolDs.usedNodes * 100) /
+     C                               poolDs.totalNodes
+     C                   ELSE
+     C                   EVAL      stats.fragmentation = 0
+     C                   ENDIF
+      *
+     C                   RETURN    stats
      P GetPoolStats    E
 
       *=====================================================================
@@ -293,13 +288,12 @@
       *
      D poolDs          DS                  LIKEDS(MemoryPool) BASED(pool)
       *
-      /FREE
-       IF pool = *NULL OR poolDs.totalNodes = 0;
-         RETURN 0;
-       ENDIF;
-       
-       RETURN (poolDs.usedNodes * 100) / poolDs.totalNodes;
-      /END-FREE
+     C                   IF        pool = *NULL OR poolDs.totalNodes = 0
+     C                   RETURN    0
+     C                   ENDIF
+      *
+     C                   RETURN    (poolDs.usedNodes * 100) /
+     C                               poolDs.totalNodes
      P GetPoolUsage    E
 
       *=====================================================================
@@ -314,13 +308,11 @@
       *
      D poolDs          DS                  LIKEDS(MemoryPool) BASED(pool)
       *
-      /FREE
-       IF pool = *NULL;
-         RETURN *ON;
-       ENDIF;
-       
-       RETURN (poolDs.freeListHead = *NULL);
-      /END-FREE
+     C                   IF        pool = *NULL
+     C                   RETURN    *ON
+     C                   ENDIF
+      *
+     C                   RETURN    (poolDs.freeListHead = *NULL)
      P IsPoolExhausted...
      P                 E
 
@@ -336,13 +328,11 @@
       *
      D poolDs          DS                  LIKEDS(MemoryPool) BASED(pool)
       *
-      /FREE
-       IF pool = *NULL;
-         RETURN 0;
-       ENDIF;
-       
-       RETURN poolDs.freeNodes;
-      /END-FREE
+     C                   IF        pool = *NULL
+     C                   RETURN    0
+     C                   ENDIF
+      *
+     C                   RETURN    poolDs.freeNodes
      P GetPoolCapacity...
      P                 E
 
@@ -356,17 +346,15 @@
       *
      D poolDs          DS                  LIKEDS(MemoryPool) BASED(pool)
       *
-      /FREE
-       IF pool = *NULL;
-         RETURN *OFF;
-       ENDIF;
-       
-       poolDs.peakUsage = poolDs.usedNodes;
-       poolDs.allocCount = 0;
-       poolDs.freeCount = 0;
-       
-       RETURN *ON;
-      /END-FREE
+     C                   IF        pool = *NULL
+     C                   RETURN    *OFF
+     C                   ENDIF
+      *
+     C                   EVAL      poolDs.peakUsage = poolDs.usedNodes
+     C                   EVAL      poolDs.allocCount = 0
+     C                   EVAL      poolDs.freeCount = 0
+      *
+     C                   RETURN    *ON
      P ResetPoolStats  E
 
       *=====================================================================
@@ -381,28 +369,26 @@
      D node            S               *
      D nodeDs          DS                  LIKEDS(JsonNode) BASED(node)
       *
-      /FREE
-       // Allocate node
-       node = AllocNode(pool);
-       IF node = *NULL;
-         RETURN *NULL;
-       ENDIF;
-       
-       // Initialize node
-       nodeDs.nodeType = nodeType;
-       nodeDs.name = '';
-       nodeDs.value = '';
-       nodeDs.parent = *NULL;
-       nodeDs.firstChild = *NULL;
-       nodeDs.lastChild = *NULL;
-       nodeDs.nextSibling = *NULL;
-       nodeDs.prevSibling = *NULL;
-       nodeDs.childCount = 0;
-       nodeDs.refCount = 1;
-       nodeDs.poolIndex = 0;
-       
-       RETURN node;
-      /END-FREE
+      * Allocate node
+     C                   EVAL      node = AllocNode(pool)
+     C                   IF        node = *NULL
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+      * Initialize node
+     C                   EVAL      nodeDs.nodeType = nodeType
+     C                   EVAL      nodeDs.name = ''
+     C                   EVAL      nodeDs.value = ''
+     C                   EVAL      nodeDs.parent = *NULL
+     C                   EVAL      nodeDs.firstChild = *NULL
+     C                   EVAL      nodeDs.lastChild = *NULL
+     C                   EVAL      nodeDs.nextSibling = *NULL
+     C                   EVAL      nodeDs.prevSibling = *NULL
+     C                   EVAL      nodeDs.childCount = 0
+     C                   EVAL      nodeDs.refCount = 1
+     C                   EVAL      nodeDs.poolIndex = 0
+      *
+     C                   RETURN    node
      P CreateNode      E
 
       *=====================================================================
@@ -420,16 +406,14 @@
      D node            S               *
      D nodeDs          DS                  LIKEDS(JsonNode) BASED(node)
       *
-      /FREE
-       node = CreateNode(pool: nodeType);
-       IF node = *NULL;
-         RETURN *NULL;
-       ENDIF;
-       
-       nodeDs.value = value;
-       
-       RETURN node;
-      /END-FREE
+     C                   EVAL      node = CreateNode(pool: nodeType)
+     C                   IF        node = *NULL
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+     C                   EVAL      nodeDs.value = value
+      *
+     C                   RETURN    node
      P CreateNodeWithValue...
      P                 E
 
@@ -448,16 +432,14 @@
      D node            S               *
      D nodeDs          DS                  LIKEDS(JsonNode) BASED(node)
       *
-      /FREE
-       node = CreateNode(pool: nodeType);
-       IF node = *NULL;
-         RETURN *NULL;
-       ENDIF;
-       
-       nodeDs.name = name;
-       
-       RETURN node;
-      /END-FREE
+     C                   EVAL      node = CreateNode(pool: nodeType)
+     C                   IF        node = *NULL
+     C                   RETURN    *NULL
+     C                   ENDIF
+      *
+     C                   EVAL      nodeDs.name = name
+      *
+     C                   RETURN    node
      P CreateNodeWithName...
      P                 E
 
