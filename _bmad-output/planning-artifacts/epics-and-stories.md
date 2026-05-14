@@ -1896,11 +1896,12 @@ Estimates may vary based on:
 ### Success Factors
 
 For successful implementation:
-1. **Clear requirements:** Well-defined acceptance criteria
-2. **Incremental progress:** Complete stories one at a time
-3. **Continuous testing:** Test as you build
-4. **Regular validation:** Verify on target platform
-5. **Documentation:** Document as you go
+1. **STRICT Fixed-Form:** ALL logic must use traditional column-based C-specs; NO /FREE or /END-FREE permitted.
+2. **Clear requirements:** Well-defined acceptance criteria
+3. **Incremental progress:** Complete stories one at a time
+4. **Continuous testing:** Test as you build
+5. **Regular validation:** Verify on target platform
+6. **Documentation:** Document as you go
 
 ---
 

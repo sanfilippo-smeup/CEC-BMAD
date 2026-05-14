@@ -123,7 +123,7 @@ This creates a significant barrier for integrating legacy RPG applications with 
 ## Technical Constraints
 
 ### Hard Requirements
-1. **Language:** Fixed-form RPGLE only
+1. **Language:** STRICT Fixed-form RPGLE only (NO /FREE or /END-FREE blocks)
 2. **Platform:** OS/400 v7.5
 3. **Dependencies:** Zero external libraries
 4. **Performance:** <1ms first-byte latency

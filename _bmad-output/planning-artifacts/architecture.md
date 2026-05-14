@@ -1082,7 +1082,18 @@ Error Flow:
 
 ---
 
-### Decision 5: Fixed-Form RPGLE Constraints
+### Decision 5: STRICT Fixed-Form RPGLE Mandate
+
+**Decision:** ALL RPGLE source code and architectural designs MUST use strict fixed-format (H, F, D, I, C, O, P specs). The use of `/FREE` or `/END-FREE` blocks is STRICTLY PROHIBITED.
+
+**Rationale:**
+- ✅ Ensures 100% compatibility with legacy systems and established coding standards.
+- ✅ Prevents fragmentation of coding styles within the project.
+- ✅ Forces disciplined use of traditional RPGLE constructs.
+
+---
+
+### Decision 6: Fixed-Form RPGLE Implementation Strategies
 
 **Challenges:**
 - Limited string handling (fixed-length fields)
@@ -1107,7 +1118,7 @@ Error Flow:
 
 ---
 
-### Decision 6: Error Handling Mechanism
+### Decision 7: Error Handling Mechanism
 
 **Options:**
 1. Return codes only

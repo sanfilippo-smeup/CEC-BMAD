@@ -1,0 +1,61 @@
+# Sprint Status - RPGLE-Json Query Utility
+# Managed by BMad. Update status fields only; preserve structure and comments.
+#
+# STATUS DEFINITIONS:
+#   backlog        - Not yet started, awaiting create-story
+#   ready-for-dev  - Story file created, ready for dev agent
+#   in-progress    - Dev agent actively working
+#   review         - In code review
+#   done           - Complete and reviewed
+#   blocked        - Blocked, needs attention
+#
+# EPIC STATUS DEFINITIONS:
+#   backlog        - Epic not yet started
+#   in-progress    - At least one story started
+#   done           - All stories complete
+
+project: RPGLE-Json
+last_updated: "2026-05-14"
+
+development_status:
+  # ── Epic 1: Foundation Infrastructure ─────────────────────────────────
+  epic-1: done
+
+  1-1-ifs-file-stream-reader: done
+  1-2-buffer-management-system: done
+  1-3-memory-allocation-framework: done
+  1-4-core-data-structures: done
+  1-5-error-handling-framework: done
+  1-6-string-utilities: done
+  1-7-position-tracking: done
+  1-8-unit-test-framework-setup: done
+
+  epic-1-retrospective: backlog
+
+  # ── Epic 2: JSON Parser Engine ─────────────────────────────────────────
+  epic-2: in-progress
+
+  2-1-json-lexer-token-recognition: ready-for-dev
+  2-2-json-lexer-string-parsing: backlog
+  2-3-json-lexer-number-parsing: backlog
+  2-4-json-lexer-keyword-parsing: backlog
+  2-5-json-parser-value-parsing: backlog
+  2-6-json-parser-object-parsing: backlog
+  2-7-json-parser-array-parsing: backlog
+  2-8-json-parser-string-nodes: backlog
+  2-9-json-parser-number-nodes: backlog
+  2-10-json-parser-boolean-nodes: backlog
+  2-11-json-parser-null-nodes: backlog
+  2-12-json-parser-error-recovery: backlog
+
+  # ── Epic 3: JSONPath Query Engine ─────────────────────────────────────
+  epic-3: backlog
+
+  # ── Epic 4: Performance Optimization ──────────────────────────────────
+  epic-4: backlog
+
+  # ── Epic 5: Public API & Integration ──────────────────────────────────
+  epic-5: backlog
+
+  # ── Epic 6: Testing & Documentation ───────────────────────────────────
+  epic-6: backlog

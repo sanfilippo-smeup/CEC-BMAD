@@ -953,7 +953,7 @@ The product is ready for release when ALL of the following are met:
 
 | Constraint | Impact | Mitigation |
 |------------|--------|------------|
-| Fixed-form RPGLE | Limited string handling | Use pointers and dynamic allocation |
+| STRICT Fixed-form RPGLE | Mandatory column-based syntax; NO /FREE or /END-FREE blocks permitted. | Winston (Architect) enforces this in all designs. |
 | No external libraries | Must implement everything | Focus on essential features |
 | 100MB file limit | Cannot process larger files | Document limitation clearly |
 | OS/400 v7.5 only | No newer features | Use compatible APIs only |
